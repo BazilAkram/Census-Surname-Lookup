@@ -72,22 +72,6 @@ data/surnames-2010.lookup.json
 python scripts/build_dataset.py --source-csv /path/to/Names_2010Census.csv
 ```
 
-## Deploy
-
-Because this is plain static HTML/CSS/JS, it deploys cleanly to GitHub Pages, Netlify, or Vercel.
-
-### GitHub Pages
-
-Push the folder to a repo and publish from the root (or from `/docs` if you prefer that layout).
-
-### Netlify
-
-Drag-and-drop the folder, or point Netlify at the repo root.
-
-### Vercel
-
-Import the repo as a static project. No framework settings are needed.
-
 ## Data source
 
 Official Census pages and files:

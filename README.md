@@ -7,6 +7,8 @@ A user types a surname, the app normalizes it to roughly match the Census surnam
 - normalized surname
 - count
 - rank
+- PROP100K
+- race / Hispanic percentage breakdowns
 
 If a surname is absent from the published file, the app does **not** show `0`. It shows:
 
@@ -20,14 +22,14 @@ This app uses the official **2010 Census surname** product. The Census Bureau ha
 
 ```text
 .
-├── app.js
-├── data/
-│   └── surnames-2010.lookup.json
-├── index.html
-├── scripts/
-│   └── build_dataset.py
-├── styles.css
-└── README.md
+|-- app.js
+|-- data/
+|   |-- surnames-2010.lookup.json
+|-- index.html
+|-- scripts/
+|   |-- build_dataset.py
+|-- styles.css
+`-- README.md
 ```
 
 ## Run locally
@@ -98,8 +100,18 @@ Official Census pages and files:
 
 Examples:
 
-- `O’Hara` → `OHARA`
-- `Smith-Jones` → `SMITHJONES`
-- `de la Cruz` → `DELACRUZ`
+- `O'Hara` -> `OHARA`
+- `Smith-Jones` -> `SMITHJONES`
+- `de la Cruz` -> `DELACRUZ`
 
-4. The app stores only the fields needed for this lookup UI: surname → `[rank, count]`.
+4. The app stores the fields needed for this lookup UI in a compact schema-backed JSON payload:
+   - `rank`
+   - `count`
+   - `prop100k`
+   - `pctwhite`
+   - `pctblack`
+   - `pctaian`
+   - `pctapi`
+   - `pct2prace`
+   - `pcthispanic`
+5. Percentages suppressed by the Census for confidentiality are stored as `null` and displayed in the UI as suppressed.

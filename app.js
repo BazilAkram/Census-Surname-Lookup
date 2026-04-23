@@ -1,6 +1,15 @@
 const DATA_URL = "./data/surnames-2010.lookup.json";
 const NOT_FOUND_MESSAGE =
   "Not found in the 2010 Census surname file; this usually means fewer than 100 occurrences.";
+const LEGACY_SCHEMA = ["rank", "count"];
+const DEMOGRAPHIC_FIELDS = [
+  ["pctwhite", "Non-Hispanic White alone"],
+  ["pctblack", "Non-Hispanic Black alone"],
+  ["pctaian", "Non-Hispanic American Indian / Alaska Native alone"],
+  ["pctapi", "Non-Hispanic Asian / NHPI alone"],
+  ["pct2prace", "Non-Hispanic two or more races"],
+  ["pcthispanic", "Hispanic or Latino"],
+];
 
 const form = document.getElementById("lookup-form");
 const input = document.getElementById("surname-input");
@@ -22,13 +31,67 @@ function formatNumber(value) {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
+function formatDecimal(value, maximumFractionDigits = 2) {
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits,
+  }).format(value);
+}
+
+function formatPercent(value) {
+  if (value == null) {
+    return "Suppressed";
+  }
+  return `${formatDecimal(value)}%`;
+}
+
+function formatProp100k(value) {
+  if (value == null) {
+    return "Unavailable";
+  }
+  return formatDecimal(value);
+}
+
+function parseLookupPayload(payload) {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    !Array.isArray(payload) &&
+    payload.surnames &&
+    Array.isArray(payload.schema)
+  ) {
+    return {
+      entries: payload.surnames,
+      schema: payload.schema,
+    };
+  }
+
+  return {
+    entries: payload,
+    schema: LEGACY_SCHEMA,
+  };
+}
+
+function materializeEntry(rawEntry, schema) {
+  if (!rawEntry) {
+    return null;
+  }
+
+  if (!Array.isArray(rawEntry)) {
+    return rawEntry;
+  }
+
+  return Object.fromEntries(schema.map((key, index) => [key, rawEntry[index] ?? null]));
+}
+
 async function loadLookup() {
   if (!lookupPromise) {
     lookupPromise = fetch(DATA_URL).then(async (response) => {
       if (!response.ok) {
         throw new Error(`Failed to load lookup data (${response.status}).`);
       }
-      return response.json();
+      const payload = await response.json();
+      return parseLookupPayload(payload);
     });
   }
   return lookupPromise;
@@ -39,7 +102,16 @@ function showCard(html) {
   resultCard.classList.remove("hidden");
 }
 
-function renderFound(normalized, rank, count) {
+function renderFound(normalized, match) {
+  const demographicItems = DEMOGRAPHIC_FIELDS.map(
+    ([key, label]) => `
+      <div class="result-item">
+        <dt>${label}</dt>
+        <dd class="${match[key] == null ? "result-value-muted" : ""}">${formatPercent(match[key])}</dd>
+      </div>
+    `
+  ).join("");
+
   showCard(`
     <p class="result-state">Match found in the official 2010 Census surname file.</p>
     <dl class="result-grid">
@@ -49,13 +121,26 @@ function renderFound(normalized, rank, count) {
       </div>
       <div class="result-item">
         <dt>Count</dt>
-        <dd>${formatNumber(count)}</dd>
+        <dd>${formatNumber(match.count)}</dd>
       </div>
       <div class="result-item">
         <dt>Rank</dt>
-        <dd>${formatNumber(rank)}</dd>
+        <dd>${formatNumber(match.rank)}</dd>
+      </div>
+      <div class="result-item">
+        <dt>PROP100K</dt>
+        <dd>${formatProp100k(match.prop100k)}</dd>
       </div>
     </dl>
+    <div class="result-section">
+      <p class="result-section-title">Race / Hispanic percentages</p>
+      <p class="result-section-copy">
+        Official Census 2010 surname percentages. Some values are suppressed for confidentiality.
+      </p>
+      <dl class="result-grid demographic-grid">
+        ${demographicItems}
+      </dl>
+    </div>
   `);
 }
 
@@ -92,11 +177,10 @@ async function runLookup(rawValue) {
 
   try {
     const lookup = await loadLookup();
-    const match = lookup[normalized];
+    const match = materializeEntry(lookup.entries[normalized], lookup.schema);
 
     if (match) {
-      const [rank, count] = match;
-      renderFound(normalized, rank, count);
+      renderFound(normalized, match);
     } else {
       renderNotFound(normalized);
     }

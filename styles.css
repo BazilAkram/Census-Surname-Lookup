@@ -163,7 +163,7 @@ button:disabled {
 
 .result-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
 }
 
@@ -185,6 +185,31 @@ button:disabled {
   font-size: 1.1rem;
   font-weight: 700;
   word-break: break-word;
+}
+
+.result-value-muted {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.result-section {
+  margin-top: 16px;
+}
+
+.result-section-title {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.result-section-copy {
+  margin: 0 0 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.demographic-grid .result-item dd {
+  font-size: 1rem;
 }
 
 .result-message {
@@ -220,8 +245,7 @@ button:disabled {
     border-radius: 20px;
   }
 
-  .input-row,
-  .result-grid {
+  .input-row {
     grid-template-columns: 1fr;
   }
 

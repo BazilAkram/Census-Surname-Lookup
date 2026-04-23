@@ -12,13 +12,25 @@ drops the aggregate "ALL OTHER NAMES" row, and writes a compact lookup JSON:
 
 The output format is:
     {
-      "SMITH": [1, 2442977],
-      "JOHNSON": [2, 1932812],
-      ...
+      "schema": [
+        "rank",
+        "count",
+        "prop100k",
+        "pctwhite",
+        "pctblack",
+        "pctaian",
+        "pctapi",
+        "pct2prace",
+        "pcthispanic"
+      ],
+      "surnames": {
+        "SMITH": [1, 2442977, 828.19, 70.9, 23.11, 0.85, 0.4, 2.19, 1.56],
+        "JOHNSON": [2, 1932812, 655.24, 58.97, 34.63, 0.94, 0.54, 2.56, 2.36],
+        ...
+      }
     }
 
-where each value is:
-    [rank, count]
+Percentages suppressed by the Census for confidentiality are stored as null.
 """
 
 from __future__ import annotations
@@ -35,6 +47,18 @@ from pathlib import Path
 OFFICIAL_ZIP_URL = "https://www2.census.gov/topics/genealogy/2010surnames/names.zip"
 CSV_FILENAME = "Names_2010Census.csv"
 EXCLUDED_NAME = "ALL OTHER NAMES"
+SUPPRESSED_VALUE = "(S)"
+SCHEMA = [
+    "rank",
+    "count",
+    "prop100k",
+    "pctwhite",
+    "pctblack",
+    "pctaian",
+    "pctapi",
+    "pct2prace",
+    "pcthispanic",
+]
 
 
 def fetch_official_csv_bytes(url: str) -> bytes:
@@ -57,15 +81,32 @@ def read_csv_path(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(f))
 
 
-def build_lookup(rows: list[dict[str, str]]) -> dict[str, list[int]]:
-    lookup: dict[str, list[int]] = {}
+def parse_float_or_none(value: str) -> float | None:
+    text = value.strip()
+    if not text or text == SUPPRESSED_VALUE:
+        return None
+    return float(text)
+
+
+def build_lookup(rows: list[dict[str, str]]) -> dict[str, list[int | float | None]]:
+    lookup: dict[str, list[int | float | None]] = {}
 
     for row in rows:
         name = row["name"].strip()
         if name == EXCLUDED_NAME:
             continue
 
-        lookup[name] = [int(row["rank"]), int(row["count"])]
+        lookup[name] = [
+            int(row["rank"]),
+            int(row["count"]),
+            parse_float_or_none(row["prop100k"]),
+            parse_float_or_none(row["pctwhite"]),
+            parse_float_or_none(row["pctblack"]),
+            parse_float_or_none(row["pctaian"]),
+            parse_float_or_none(row["pctapi"]),
+            parse_float_or_none(row["pct2prace"]),
+            parse_float_or_none(row["pcthispanic"]),
+        ]
 
     return lookup
 
@@ -93,13 +134,13 @@ def main() -> int:
         csv_text = extract_csv_from_zip(zip_bytes, CSV_FILENAME)
         rows = read_csv_text(csv_text)
 
-    lookup = build_lookup(rows)
+    lookup = {"schema": SCHEMA, "surnames": build_lookup(rows)}
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", encoding="utf-8") as f:
         json.dump(lookup, f, ensure_ascii=True, separators=(",", ":"))
 
-    print(f"Wrote {len(lookup):,} surnames to {args.output}")
+    print(f"Wrote {len(lookup['surnames']):,} surnames to {args.output}")
     return 0
 
 

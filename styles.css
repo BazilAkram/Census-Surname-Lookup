@@ -187,11 +187,6 @@ button:disabled {
   word-break: break-word;
 }
 
-.result-value-muted {
-  color: var(--muted);
-  font-weight: 600;
-}
-
 .result-section {
   margin-top: 16px;
 }
@@ -208,8 +203,33 @@ button:disabled {
   line-height: 1.5;
 }
 
+.demographic-grid .result-item {
+  text-align: center;
+}
+
 .demographic-grid .result-item dd {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   font-size: 1rem;
+}
+
+.result-value-stack {
+  min-height: 58px;
+  justify-content: center;
+}
+
+.result-value-main {
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.result-value-sub {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--muted);
 }
 
 .result-message {

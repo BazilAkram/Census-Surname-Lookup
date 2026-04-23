@@ -1,14 +1,24 @@
-const DATA_URL = "./data/surnames-2010.lookup.json";
+const DATA_URL = "./data/surnames.lookup.json";
+const LOOKUP_SCHEMA = [
+  "rank",
+  "count",
+  "prop100k",
+  "countwhite",
+  "countblack",
+  "countaian",
+  "countapi",
+  "count2prace",
+  "counthispanic",
+];
 const NOT_FOUND_MESSAGE =
-  "Not found in the 2010 Census surname file; this usually means fewer than 100 occurrences.";
-const LEGACY_SCHEMA = ["rank", "count"];
+  "Not found in the 2020 Census last-name file; this usually means fewer than 100 occurrences.";
 const DEMOGRAPHIC_FIELDS = [
-  ["pctwhite", "Non-Hispanic White alone"],
-  ["pctblack", "Non-Hispanic Black alone"],
-  ["pctaian", "Non-Hispanic American Indian / Alaska Native alone"],
-  ["pctapi", "Non-Hispanic Asian / NHPI alone"],
-  ["pct2prace", "Non-Hispanic two or more races"],
-  ["pcthispanic", "Hispanic or Latino"],
+  ["countwhite", "Non-Hispanic White alone"],
+  ["countblack", "Non-Hispanic Black alone"],
+  ["countaian", "Non-Hispanic American Indian / Alaska Native alone"],
+  ["countapi", "Non-Hispanic Asian / NHPI alone"],
+  ["count2prace", "Non-Hispanic two or more races"],
+  ["counthispanic", "Hispanic or Latino"],
 ];
 
 const form = document.getElementById("lookup-form");
@@ -38,18 +48,19 @@ function formatDecimal(value, maximumFractionDigits = 2) {
   }).format(value);
 }
 
-function formatPercent(value) {
-  if (value == null) {
-    return "Suppressed";
-  }
-  return `${formatDecimal(value)}%`;
-}
-
 function formatProp100k(value) {
   if (value == null) {
     return "Unavailable";
   }
   return formatDecimal(value);
+}
+
+function formatPercentFromCount(groupCount, totalCount) {
+  if (!totalCount) {
+    return "0%";
+  }
+
+  return `${formatDecimal((groupCount / totalCount) * 100)}%`;
 }
 
 function parseLookupPayload(payload) {
@@ -68,7 +79,7 @@ function parseLookupPayload(payload) {
 
   return {
     entries: payload,
-    schema: LEGACY_SCHEMA,
+    schema: LOOKUP_SCHEMA,
   };
 }
 
@@ -90,10 +101,12 @@ async function loadLookup() {
       if (!response.ok) {
         throw new Error(`Failed to load lookup data (${response.status}).`);
       }
+
       const payload = await response.json();
       return parseLookupPayload(payload);
     });
   }
+
   return lookupPromise;
 }
 
@@ -104,16 +117,19 @@ function showCard(html) {
 
 function renderFound(normalized, match) {
   const demographicItems = DEMOGRAPHIC_FIELDS.map(
-    ([key, label]) => `
+    ([countKey, label]) => `
       <div class="result-item">
         <dt>${label}</dt>
-        <dd class="${match[key] == null ? "result-value-muted" : ""}">${formatPercent(match[key])}</dd>
+        <dd class="result-value-stack">
+          <span class="result-value-main">${formatPercentFromCount(match[countKey], match.count)}</span>
+          <span class="result-value-sub">${formatNumber(match[countKey])}</span>
+        </dd>
       </div>
     `
   ).join("");
 
   showCard(`
-    <p class="result-state">Match found in the official 2010 Census surname file.</p>
+    <p class="result-state">Match found in the official 2020 Census last-name file.</p>
     <dl class="result-grid">
       <div class="result-item">
         <dt>Normalized surname</dt>
@@ -133,10 +149,7 @@ function renderFound(normalized, match) {
       </div>
     </dl>
     <div class="result-section">
-      <p class="result-section-title">Race / Hispanic percentages</p>
-      <p class="result-section-copy">
-        Official Census 2010 surname percentages. Some values are suppressed for confidentiality.
-      </p>
+      <p class="result-section-title">Race / Hispanic breakdown</p>
       <dl class="result-grid demographic-grid">
         ${demographicItems}
       </dl>
@@ -146,7 +159,7 @@ function renderFound(normalized, match) {
 
 function renderNotFound(normalized) {
   showCard(`
-    <p class="result-state">No published 2010 Census match.</p>
+    <p class="result-state">No published 2020 Census match.</p>
     <dl class="result-grid">
       <div class="result-item">
         <dt>Normalized surname</dt>
@@ -187,7 +200,7 @@ async function runLookup(rawValue) {
   } catch (error) {
     console.error(error);
     renderError(
-      "Could not load the local lookup dataset. Run this app through a local server or check that data/surnames-2010.lookup.json is present."
+      "Could not load the local lookup dataset. Run this app through a local server or check that data/surnames.lookup.json is present."
     );
   } finally {
     searchButton.disabled = false;

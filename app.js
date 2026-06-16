@@ -208,15 +208,21 @@ async function runLookup(rawValue) {
   }
 }
 
+function runLookupFromInput() {
+  const trimmedValue = input.value.trim();
+  input.value = trimmedValue;
+  runLookup(trimmedValue);
+}
+
 form.addEventListener("submit", (event) => {
   event.preventDefault();
-  runLookup(input.value);
+  runLookupFromInput();
 });
 
 input.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
-    runLookup(input.value);
+    runLookupFromInput();
   }
 });
 
